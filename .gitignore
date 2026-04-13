@@ -1,4 +1,21 @@
-# Gradle files
+# ─── Secretos — NUNCA subir a GitHub ─────────────────────────────
+.env
+*.env
+secrets.json
+
+# ─── Python ───────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ─── Sistema de investigacion (opcional, puede ser grande) ────────
+investigacion/
+
+# ─── Gradle files
 .gradle/
 build/
 
