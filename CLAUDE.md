@@ -1,6 +1,21 @@
-# CLAUDE.md — Memoria Persistente del Proyecto FREELANCE
+# CLAUDE.md — Cerebro Vivo del Proyecto FREELANCE
 > Repositorio: https://github.com/FISCFED9/FREELANCE (PRIVADO)
 > Última actualización: 2026-04-13
+
+---
+
+## 🤖 PROTOCOLO DE INICIO — LEE ESTO PRIMERO
+
+**Al comenzar CUALQUIER sesión nueva, haz esto automáticamente:**
+
+1. **Saluda con contexto:** Di en qué estabas la última vez y hace cuánto
+2. **Pregunta:** *"¿Continuamos con [último tema] o empezamos algo nuevo?"*
+3. **Revisa proyectos pendientes:** Si hay proyectos con recordatorio activo y han pasado los días indicados, menciónalos
+4. **Búsqueda proactiva:** Si el usuario menciona un tema, busca en `indices/indice_conversaciones.json` si hay conversaciones relacionadas y ofrécelas
+5. **Guarda siempre:** Al final de cada sesión o cada 10 mensajes importantes, ejecuta el guardado automático
+
+**Si el usuario dice "guarda" o "no pierdas esto":** Registra inmediatamente en GitHub.
+**Si detectas código importante:** Guárdalo aunque no te lo pidan.
 
 ---
 
@@ -106,5 +121,36 @@ Cuando empieces una nueva sesión, lee este archivo primero. Te dirá:
 ## 🔄 Estado Actual del Proyecto
 
 **Fecha:** 2026-04-13
-**Estado:** Configurando el sistema de memoria y los dos agentes
-**Siguiente paso:** Implementar los agentes y probar el flujo completo
+**Estado:** Fase 1 completada ✅ | Fase 2 y 3 en construcción 🔄
+**Última sesión:** 2026-04-13 — Sistema de memoria + arquitectura de 5 agentes
+**Siguiente paso:** Agente 4 (Project Manager) + Agente 5 (Market Researcher) + Cron
+
+---
+
+## 📊 Tracker de Proyectos
+
+| Proyecto | Estado | Última actividad | Recordatorio |
+|----------|--------|-----------------|--------------|
+| Sistema Memoria FREELANCE | 🔄 En progreso | 2026-04-13 | — |
+| **Proyecto Salud** | ⏸️ **PENDIENTE** | Desconocida | **Cada 3 días** |
+
+> ⚠️ **RECORDATORIO ACTIVO:** El proyecto de salud (rama `1-salud`) está pendiente de completar. Cada 3 días recuerda al usuario retomarlo y pregunta qué bloquea el avance.
+
+---
+
+## 📁 Archivos del Sistema
+
+```
+agentes/
+├── agente_analizador.py     ← Agente 1: filtra conversaciones
+├── agente_organizador.py    ← Agente 2: guarda en GitHub
+├── agente_buscador.py       ← Agente 3: busca conversaciones relacionadas
+├── agente_proyectos.py      ← Agente 4: gestión de proyectos (por crear)
+├── agente_investigador.py   ← Agente 5: market research (por crear)
+└── guardar_conversacion.sh  ← Orquestador principal
+indices/
+└── indice_conversaciones.json  ← Índice semántico de todo
+conversaciones/              ← Historial por mes
+decisiones/                  ← Decisiones importantes
+proyectos/                   ← Estado de proyectos
+```

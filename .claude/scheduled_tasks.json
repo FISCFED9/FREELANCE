@@ -1,0 +1,18 @@
+{
+  "tasks": [
+    {
+      "id": "e66907a9",
+      "cron": "0 9 */3 * *",
+      "prompt": "Revisa proyectos pendientes del usuario FISCFED9. Ejecuta el protocolo de recordatorio:\n\n1. Lee el archivo /workspace/project/indices/indice_conversaciones.json\n2. Busca proyectos con estado \"pendiente\" o \"en_progreso\" que tengan recordatorio_cada_dias configurado\n3. Para el PROYECTO SALUD (rama 1-salud): recuerda al usuario que está pendiente y pregunta qué lo está bloqueando\n4. Muestra un mensaje directo: \"⏰ Han pasado 3 días. El proyecto de salud sigue pendiente — ¿qué te está bloqueando? ¿Seguimos hoy?\"\n5. También sugiere: \"¿Quieres que haga un market research rápido de nuevas oportunidades mientras retomamos el proyecto de salud?\"",
+      "createdAt": 1776120217910,
+      "recurring": true
+    },
+    {
+      "id": "54c38ee7",
+      "cron": "0 10 * * 1",
+      "prompt": "Recordatorio semanal de Market Research para FISCFED9.\n\nCada lunes sugiere proactivamente:\n\"📊 Es lunes — buen momento para revisar oportunidades nuevas. ¿Quieres que haga un deep research de las 3 mejores ideas de monetización esta semana? Puedo buscar tendencias actuales en IA, sitios web monetizables y servicios para empresas.\"\n\nTambién resume brevemente: qué proyectos están activos, cuál es el más urgente, y si hay alguno completado esta semana que celebrar.",
+      "createdAt": 1776120223115,
+      "recurring": true
+    }
+  ]
+}

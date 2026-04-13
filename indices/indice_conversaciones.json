@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "ultima_actualizacion": "2026-04-13",
+  "conversaciones": [
+    {
+      "id": "conv_001",
+      "archivo": "conversaciones/2026-04/2026-04-13_sistema_memoria_agentes.md",
+      "fecha": "2026-04-13",
+      "titulo": "Sistema de Memoria con Agentes IA",
+      "resumen": "Se creó el sistema completo de memoria persistente con dos agentes (analizador y organizador). Se acordó arquitectura de 5 agentes y plan de monetización.",
+      "temas": ["memoria", "agentes", "github", "automatizacion", "arquitectura"],
+      "tecnologias": ["python", "anthropic", "git", "github"],
+      "proyectos_relacionados": ["FREELANCE", "sistema-memoria"],
+      "importancia": 5,
+      "estado": "completado_parcial",
+      "pendientes": ["agente3", "agente4", "agente5", "cron"]
+    }
+  ],
+  "proyectos": [
+    {
+      "id": "proj_001",
+      "nombre": "Sistema de Memoria FREELANCE",
+      "descripcion": "Sistema de agentes IA para guardar conversaciones en GitHub automáticamente",
+      "estado": "en_progreso",
+      "rama_github": "MASTER1",
+      "ultima_actividad": "2026-04-13",
+      "prioridad": "alta",
+      "recordatorio_cada_dias": null
+    },
+    {
+      "id": "proj_002",
+      "nombre": "Proyecto Salud",
+      "descripcion": "Proyecto pendiente de completar (rama 1-salud)",
+      "estado": "pendiente",
+      "rama_github": "1-salud",
+      "ultima_actividad": "desconocida",
+      "prioridad": "media",
+      "recordatorio_cada_dias": 3,
+      "recordatorio_mensaje": "El proyecto de salud lleva tiempo pendiente. ¿Qué necesitas para terminarlo? ¿Hay algún bloqueo técnico o de motivación?"
+    }
+  ],
+  "temas_indexados": {
+    "memoria": ["conv_001"],
+    "agentes": ["conv_001"],
+    "github": ["conv_001"],
+    "automatizacion": ["conv_001"],
+    "python": ["conv_001"],
+    "monetizacion": ["conv_001"],
+    "ia": ["conv_001"],
+    "freelance": ["conv_001"],
+    "salud": []
+  }
+}
