@@ -48,3 +48,7 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# .NET
+**/bin/
+**/obj/

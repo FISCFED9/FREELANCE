@@ -1,0 +1,43 @@
+name: dotnet-ci
+
+on:
+  push:
+    branches:
+      - MASTER1
+  pull_request:
+    branches:
+      - MASTER1
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore plantilla-base
+        run: dotnet restore dotnet/plantilla-base/FreelanceTemplate.sln
+
+      - name: Build plantilla-base
+        run: dotnet build dotnet/plantilla-base/FreelanceTemplate.sln --configuration Release --no-restore
+
+      - name: Test plantilla-base
+        run: dotnet test dotnet/plantilla-base/FreelanceTemplate.sln --configuration Release --no-build
+
+      - name: Restore solucion-pruebas
+        run: dotnet restore dotnet/solucion-pruebas/SolucionEjemplo.sln
+
+      - name: Build solucion-pruebas
+        run: dotnet build dotnet/solucion-pruebas/SolucionEjemplo.sln --configuration Release --no-restore
+
+      - name: Test solucion-pruebas
+        run: dotnet test dotnet/solucion-pruebas/SolucionEjemplo.sln --configuration Release --no-build
+
+      - name: Build webapi-ejemplo
+        run: dotnet build dotnet/webapi-ejemplo/WebApiEjemplo/WebApiEjemplo.csproj --configuration Release
