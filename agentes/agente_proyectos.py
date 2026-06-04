@@ -17,13 +17,12 @@ Uso:
 import anthropic
 import sys
 import json
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
-REPO_PATH = "/workspace/project"
-INDICE_PATH = f"{REPO_PATH}/indices/indice_conversaciones.json"
-PROYECTOS_PATH = f"{REPO_PATH}/proyectos"
+REPO_PATH = Path(__file__).resolve().parents[1]
+INDICE_PATH = REPO_PATH / "indices" / "indice_conversaciones.json"
+PROYECTOS_PATH = REPO_PATH / "proyectos"
 
 client = anthropic.Anthropic()
 
@@ -75,15 +74,24 @@ Devuelve JSON:
 """
 
 
+def _extraer_json(texto: str) -> dict:
+    if "```json" in texto:
+        texto = texto.split("```json", 1)[1].split("```", 1)[0].strip()
+    elif "```" in texto:
+        texto = texto.split("```", 1)[1].split("```", 1)[0].strip()
+    return json.loads(texto)
+
+
 def cargar_indice() -> dict:
-    if not os.path.exists(INDICE_PATH):
+    if not INDICE_PATH.exists():
         return {"conversaciones": [], "proyectos": []}
-    with open(INDICE_PATH, "r", encoding="utf-8") as f:
+    with INDICE_PATH.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def guardar_indice(indice: dict):
-    with open(INDICE_PATH, "w", encoding="utf-8") as f:
+    INDICE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with INDICE_PATH.open("w", encoding="utf-8") as f:
         json.dump(indice, f, ensure_ascii=False, indent=2)
 
 
@@ -122,33 +130,37 @@ def revisar_recordatorios() -> dict:
     if not proyectos_necesitan_recordatorio:
         return {"tiene_pendientes": False, "recordatorios": []}
 
-    # Generar recordatorios con Claude
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=1024,
-        system=SYSTEM_RECORDATORIO,
-        messages=[{
-            "role": "user",
-            "content": f"""Genera recordatorios para estos proyectos pendientes:
+    try:
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1024,
+            system=SYSTEM_RECORDATORIO,
+            messages=[{
+                "role": "user",
+                "content": f"""Genera recordatorios para estos proyectos pendientes:
 
 {json.dumps(proyectos_necesitan_recordatorio, ensure_ascii=False, indent=2)}
 
 Devuelve SOLO el JSON."""
-        }]
-    )
+            }]
+        )
 
-    texto = ""
-    for block in response.content:
-        if block.type == "text":
-            texto = block.text
-            break
-
-    if "```json" in texto:
-        texto = texto.split("```json")[1].split("```")[0].strip()
-    elif "```" in texto:
-        texto = texto.split("```")[1].split("```")[0].strip()
-
-    return json.loads(texto)
+        texto = ""
+        for block in response.content:
+            if block.type == "text":
+                texto = block.text
+                break
+        return _extraer_json(texto)
+    except Exception:
+        recordatorios = []
+        for proj in proyectos_necesitan_recordatorio:
+            recordatorios.append({
+                "proyecto": proj["nombre"],
+                "mensaje": f"{proj['nombre']} lleva {proj['dias_sin_actividad']} días sin actividad.",
+                "accion_sugerida": "Dedica 25 minutos hoy a completar una sola tarea pequeña y comitear avance.",
+                "pregunta": "¿Qué bloqueo concreto te está frenando ahora mismo?"
+            })
+        return {"tiene_pendientes": True, "recordatorios": recordatorios}
 
 
 def analizar_proyecto(nombre_proyecto: str) -> dict:
@@ -172,14 +184,15 @@ def analizar_proyecto(nombre_proyecto: str) -> dict:
         if nombre_proyecto.lower() in " ".join(c.get("proyectos_relacionados", [])).lower()
     ]
 
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=1536,
-        thinking={"type": "adaptive"},
-        system=SYSTEM_ANALISIS_PROYECTO,
-        messages=[{
-            "role": "user",
-            "content": f"""Analiza este proyecto:
+    try:
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1536,
+            thinking={"type": "adaptive"},
+            system=SYSTEM_ANALISIS_PROYECTO,
+            messages=[{
+                "role": "user",
+                "content": f"""Analiza este proyecto:
 
 PROYECTO:
 {json.dumps(proyecto, ensure_ascii=False, indent=2)}
@@ -188,21 +201,29 @@ CONVERSACIONES RELACIONADAS:
 {json.dumps([{"titulo": c["titulo"], "resumen": c["resumen"]} for c in convs_relacionadas], ensure_ascii=False, indent=2)}
 
 Devuelve SOLO el JSON con el análisis."""
-        }]
-    )
+            }]
+        )
 
-    texto = ""
-    for block in response.content:
-        if block.type == "text":
-            texto = block.text
-            break
+        texto = ""
+        for block in response.content:
+            if block.type == "text":
+                texto = block.text
+                break
 
-    if "```json" in texto:
-        texto = texto.split("```json")[1].split("```")[0].strip()
-    elif "```" in texto:
-        texto = texto.split("```")[1].split("```")[0].strip()
+        resultado = _extraer_json(texto)
+    except Exception:
+        resultado = {
+            "evaluacion": f"Proyecto en estado '{proyecto.get('estado', 'desconocido')}'.",
+            "riesgos": ["Falta de continuidad", "Bloqueos no explicitados"],
+            "proximos_pasos": [
+                {"paso": 1, "descripcion": "Definir el siguiente hito pequeño", "tiempo_estimado": "1 hora"},
+                {"paso": 2, "descripcion": "Implementar y comitear ese hito", "tiempo_estimado": "2 horas"},
+                {"paso": 3, "descripcion": "Actualizar estado del proyecto", "tiempo_estimado": "30 minutos"}
+            ],
+            "tiempo_total_estimado": "1-2 días",
+            "prioridad_recomendada": proyecto.get("prioridad", "media")
+        }
 
-    resultado = json.loads(texto)
     resultado["proyecto"] = proyecto["nombre"]
     return resultado
 
@@ -294,7 +315,7 @@ def main():
     elif sys.argv[1] == "--actualizar" and len(sys.argv) > 3:
         nombre = sys.argv[2]
         estado = sys.argv[3]
-        nota = sys.argv[4] if len(sys.argv) > 4 else ""
+        nota = " ".join(sys.argv[4:]) if len(sys.argv) > 4 else ""
         resultado = actualizar_estado_proyecto(nombre, estado, nota)
     else:
         resultado = {"error": "Argumento no reconocido. Usa --revisar, --recordatorio, --analizar, --nuevo, --actualizar"}

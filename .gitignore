@@ -15,6 +15,11 @@ build/
 # ─── Sistema de investigacion (opcional, puede ser grande) ────────
 investigacion/
 
+# ─── Node / Frontend ────────────────────────────────────────────────
+node_modules/
+web/node_modules/
+web/dist/
+
 # ─── Gradle files
 .gradle/
 build/
