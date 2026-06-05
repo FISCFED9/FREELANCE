@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-local
+
+    # GPU support (Windows con Docker Desktop + WSL2)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Puertos
+    ports:
+      - "11434:11434"  # API de Ollama
+
+    # Volúmenes persistentes
+    volumes:
+      - ollama-data:/root/.ollama  # Persistencia de modelos
+      - ${PWD}/scripts:/scripts    # Scripts locales
+
+    # Variables de entorno
+    environment:
+      OLLAMA_DEBUG: "1"
+      OLLAMA_HOST: "0.0.0.0:11434"
+      # Para GPU
+      CUDA_VISIBLE_DEVICES: "0"
+      # Para Vulkan (Windows)
+      # VULKAN_LOADER: "/usr/lib/x86_64-linux-gnu/libvulkan.so.1"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Sin reinicio automático
+    restart: unless-stopped
+
+    # Interactivo
+    stdin_open: true
+    tty: true
+
+volumes:
+  ollama-data:
+    driver: local
