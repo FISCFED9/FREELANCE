@@ -13,12 +13,11 @@ Uso:
 import anthropic
 import sys
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
-REPO_PATH = "/workspace/project"
-INDICE_PATH = f"{REPO_PATH}/indices/indice_conversaciones.json"
+REPO_PATH = Path(__file__).resolve().parents[1]
+INDICE_PATH = REPO_PATH / "indices" / "indice_conversaciones.json"
 
 client = anthropic.Anthropic()
 
@@ -83,9 +82,9 @@ Devuelve un JSON con:
 
 def cargar_indice() -> dict:
     """Carga el índice de conversaciones."""
-    if not os.path.exists(INDICE_PATH):
+    if not INDICE_PATH.exists():
         return {"conversaciones": [], "proyectos": [], "temas_indexados": {}}
-    with open(INDICE_PATH, "r", encoding="utf-8") as f:
+    with INDICE_PATH.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -268,7 +267,8 @@ def actualizar_indice(nueva_conversacion: dict):
         if nuevo_id not in indice["temas_indexados"][tema]:
             indice["temas_indexados"][tema].append(nuevo_id)
 
-    with open(INDICE_PATH, "w", encoding="utf-8") as f:
+    INDICE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with INDICE_PATH.open("w", encoding="utf-8") as f:
         json.dump(indice, f, ensure_ascii=False, indent=2)
 
     return nuevo_id

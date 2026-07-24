@@ -60,6 +60,32 @@ Si no hay nada valioso, devuelve:
 }
 """
 
+
+def _analisis_local_basico(texto_conversacion: str) -> dict:
+    """
+    Fallback local cuando el modelo no está disponible.
+    """
+    texto = texto_conversacion.strip()
+    tokens = [t.strip(".,;:!?¡¿\"'()[]{}").lower() for t in texto.split()]
+    tokens = [t for t in tokens if t]
+
+    if len(tokens) <= 12 and "```" not in texto and "/" not in texto and "\\" not in texto:
+        return {
+            "fecha": datetime.now().strftime("%Y-%m-%d"),
+            "tiene_contenido_valioso": False,
+            "razon": "Texto corto sin contenido técnico accionable"
+        }
+
+    return {
+        "fecha": datetime.now().strftime("%Y-%m-%d"),
+        "tiene_contenido_valioso": True,
+        "resumen_breve": "Contenido analizado (fallback local)",
+        "categorias": ["general"],
+        "contenido_filtrado": texto,
+        "codigo_extraido": [],
+        "palabras_clave": []
+    }
+
 def analizar_conversacion(texto_conversacion: str) -> dict:
     """
     Analiza una conversación y extrae lo importante.
@@ -72,24 +98,27 @@ def analizar_conversacion(texto_conversacion: str) -> dict:
     """
     print("🔍 Agente Analizador procesando conversación...", file=sys.stderr)
 
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=4096,
-        thinking={"type": "adaptive"},
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"""Analiza esta conversación y extrae solo lo valioso:
+    try:
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=4096,
+            thinking={"type": "adaptive"},
+            system=SYSTEM_PROMPT,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""Analiza esta conversación y extrae solo lo valioso:
 
 ---INICIO CONVERSACIÓN---
 {texto_conversacion}
 ---FIN CONVERSACIÓN---
 
 Devuelve SOLO el JSON, sin texto adicional."""
-            }
-        ]
-    )
+                }
+            ]
+        )
+    except Exception:
+        return _analisis_local_basico(texto_conversacion)
 
     # Extraer el texto de la respuesta
     texto_respuesta = ""
