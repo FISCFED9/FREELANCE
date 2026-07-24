@@ -14,11 +14,13 @@ import anthropic
 import sys
 import json
 import re
+import os
 from datetime import datetime
 
 # Cliente con la configuración de OpenRouter vía settings.json
 client = anthropic.Anthropic()
 MAX_PALABRAS_TEXTO_CORTO = 12
+# Mensaje observado cuando Anthropic SDK no encuentra método de autenticación.
 AUTH_ERROR_FRAGMENT = "Could not resolve authentication method"
 PUNCTUATION_TO_STRIP = ".,;:!?¡¿\"'()[]{}"
 RUTA_ESTILO_UNIX_RE = re.compile(r"(?:^|\s)(?:\.?\.?/)?[\w.-]+(?:/[\w.-]+)+")
@@ -80,8 +82,7 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
       para filtrar saludos y mensajes cortos sin costo adicional.
     """
     texto = texto_conversacion.strip()
-    tokens = [t.strip(PUNCTUATION_TO_STRIP).lower() for t in texto.split()]
-    tokens = [t for t in tokens if t]
+    tokens = [t for t in (w.strip(PUNCTUATION_TO_STRIP).lower() for w in texto.split()) if t]
 
     if len(tokens) <= MAX_PALABRAS_TEXTO_CORTO and not _contiene_senales_tecnicas(texto):
         return {
@@ -126,12 +127,23 @@ def _es_error_api_esperado(exc: Exception) -> bool:
     if not isinstance(exc, TypeError):
         return False
 
+    credenciales_configuradas = any(
+        os.getenv(var)
+        for var in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "OPENROUTER_API_KEY")
+    )
+    if not credenciales_configuradas:
+        return True
+
+    return any(AUTH_ERROR_FRAGMENT in mensaje for mensaje in _mensajes_excepcion(exc))
+
+
+def _mensajes_excepcion(exc: Exception) -> list[str]:
     mensajes = [str(exc)]
     if exc.__cause__:
         mensajes.append(str(exc.__cause__))
     if exc.__context__:
         mensajes.append(str(exc.__context__))
-    return any(AUTH_ERROR_FRAGMENT in mensaje for mensaje in mensajes)
+    return mensajes
 
 def analizar_conversacion(texto_conversacion: str) -> dict:
     """
