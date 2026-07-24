@@ -20,6 +20,10 @@ from datetime import datetime
 client = anthropic.Anthropic()
 MAX_PALABRAS_TEXTO_CORTO = 12
 AUTH_ERROR_FRAGMENT = "Could not resolve authentication method"
+PUNCTUATION_TO_STRIP = ".,;:!?¡¿\"'()[]{}"
+RUTA_ESTILO_UNIX_RE = re.compile(r"(?:^|\s)(?:\.?\.?/)?[\w.-]+(?:/[\w.-]+)+")
+RUTA_ESTILO_WINDOWS_RE = re.compile(r"[A-Za-z]:\\[\w .-]+(?:\\[\w .-]+)+")
+ARCHIVO_CON_EXTENSION_RE = re.compile(r"\b[\w.-]+\.(py|js|ts|tsx|json|md|yaml|yml|sql|sh|ps1)\b", re.IGNORECASE)
 
 SYSTEM_PROMPT = """Eres el Agente Analizador del proyecto FREELANCE de FISCFED9.
 
@@ -76,7 +80,7 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
       para filtrar saludos y mensajes cortos sin costo adicional.
     """
     texto = texto_conversacion.strip()
-    tokens = [t.strip(".,;:!?¡¿\"'()[]{}").lower() for t in texto.split()]
+    tokens = [t.strip(PUNCTUATION_TO_STRIP).lower() for t in texto.split()]
     tokens = [t for t in tokens if t]
 
     if len(tokens) <= MAX_PALABRAS_TEXTO_CORTO and not _contiene_senales_tecnicas(texto):
@@ -101,9 +105,9 @@ def _contiene_senales_tecnicas(texto: str) -> bool:
     if "```" in texto:
         return True
 
-    ruta_estilo_unix = re.search(r"(?:^|\s)(?:\.?\.?/)?[\w.-]+(?:/[\w.-]+)+", texto)
-    ruta_estilo_windows = re.search(r"[A-Za-z]:\\[\w .-]+(?:\\[\w .-]+)+", texto)
-    archivo_con_extension = re.search(r"\b[\w.-]+\.(py|js|ts|tsx|json|md|yaml|yml|sql|sh|ps1)\b", texto, re.IGNORECASE)
+    ruta_estilo_unix = RUTA_ESTILO_UNIX_RE.search(texto)
+    ruta_estilo_windows = RUTA_ESTILO_WINDOWS_RE.search(texto)
+    archivo_con_extension = ARCHIVO_CON_EXTENSION_RE.search(texto)
     return bool(ruta_estilo_unix or ruta_estilo_windows or archivo_con_extension)
 
 
@@ -119,7 +123,15 @@ def _es_error_api_esperado(exc: Exception) -> bool:
     ):
         return True
     # El SDK puede lanzar TypeError por autenticación no configurada.
-    return isinstance(exc, TypeError) and AUTH_ERROR_FRAGMENT in str(exc)
+    if not isinstance(exc, TypeError):
+        return False
+
+    mensajes = [str(exc)]
+    if exc.__cause__:
+        mensajes.append(str(exc.__cause__))
+    if exc.__context__:
+        mensajes.append(str(exc.__context__))
+    return any(AUTH_ERROR_FRAGMENT in mensaje for mensaje in mensajes)
 
 def analizar_conversacion(texto_conversacion: str) -> dict:
     """
