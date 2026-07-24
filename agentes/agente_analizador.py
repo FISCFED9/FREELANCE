@@ -23,8 +23,8 @@ MAX_PALABRAS_TEXTO_CORTO = 12
 # Mensaje observado cuando Anthropic SDK no encuentra método de autenticación.
 AUTH_ERROR_FRAGMENT = "Could not resolve authentication method"
 PUNCTUATION_TO_STRIP = ".,;:!?¡¿\"'()[]{}"
-RUTA_ESTILO_UNIX_RE = re.compile(r"(?:^|\s)(?:\.?\.?/)?[\w.-]+(?:/[\w.-]+)+")
-RUTA_ESTILO_WINDOWS_RE = re.compile(r"[A-Za-z]:\\[\w .-]+(?:\\[\w .-]+)+")
+UNIX_PATH_PATTERN_RE = re.compile(r"(?:^|\s)(?:\.?\.?/)?[\w.-]+(?:/[\w.-]+)+")
+WINDOWS_PATH_PATTERN_RE = re.compile(r"[A-Za-z]:\\[\w .-]+(?:\\[\w .-]+)+")
 ARCHIVO_CON_EXTENSION_RE = re.compile(r"\b[\w.-]+\.(py|js|ts|tsx|json|md|yaml|yml|sql|sh|ps1)\b", re.IGNORECASE)
 
 SYSTEM_PROMPT = """Eres el Agente Analizador del proyecto FREELANCE de FISCFED9.
@@ -84,7 +84,7 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
     texto = texto_conversacion.strip()
     tokens = [t for t in (w.strip(PUNCTUATION_TO_STRIP).lower() for w in texto.split()) if t]
 
-    if len(tokens) <= MAX_PALABRAS_TEXTO_CORTO and not _contiene_senales_tecnicas(texto):
+    if len(tokens) <= MAX_PALABRAS_TEXTO_CORTO and not _contains_technical_signals(texto):
         return {
             "fecha": datetime.now().strftime("%Y-%m-%d"),
             "tiene_contenido_valioso": False,
@@ -102,12 +102,12 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
     }
 
 
-def _contiene_senales_tecnicas(texto: str) -> bool:
+def _contains_technical_signals(texto: str) -> bool:
     if "```" in texto:
         return True
 
-    ruta_estilo_unix = RUTA_ESTILO_UNIX_RE.search(texto)
-    ruta_estilo_windows = RUTA_ESTILO_WINDOWS_RE.search(texto)
+    ruta_estilo_unix = UNIX_PATH_PATTERN_RE.search(texto)
+    ruta_estilo_windows = WINDOWS_PATH_PATTERN_RE.search(texto)
     archivo_con_extension = ARCHIVO_CON_EXTENSION_RE.search(texto)
     return bool(ruta_estilo_unix or ruta_estilo_windows or archivo_con_extension)
 
@@ -127,17 +127,17 @@ def _es_error_api_esperado(exc: Exception) -> bool:
     if not isinstance(exc, TypeError):
         return False
 
-    credenciales_configuradas = any(
+    credentials_configured = any(
         os.getenv(var)
         for var in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "OPENROUTER_API_KEY")
     )
-    if not credenciales_configuradas:
+    if not credentials_configured:
         return True
 
-    return any(AUTH_ERROR_FRAGMENT in mensaje for mensaje in _mensajes_excepcion(exc))
+    return any(AUTH_ERROR_FRAGMENT in message for message in _exception_messages(exc))
 
 
-def _mensajes_excepcion(exc: Exception) -> list[str]:
+def _exception_messages(exc: Exception) -> list[str]:
     mensajes = [str(exc)]
     if exc.__cause__:
         mensajes.append(str(exc.__cause__))
