@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 # Configuración del repo
-REPO_PATH = str(Path(__file__).resolve().parents[1])
+REPO_PATH = Path(__file__).resolve().parents[1]
 RAMAS = {
     "conversaciones": "MASTER1",
     "codigo": "MASTER1",

@@ -13,6 +13,7 @@ Uso:
 import anthropic
 import sys
 import json
+import re
 from datetime import datetime
 
 # Cliente con la configuración de OpenRouter vía settings.json
@@ -94,7 +95,27 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
 
 
 def _contiene_senales_tecnicas(texto: str) -> bool:
-    return "```" in texto or "/" in texto or "\\" in texto
+    if "```" in texto:
+        return True
+
+    ruta_estilo_unix = re.search(r"(?:^|\\s)(?:\\.?\\.?/)?[\\w.-]+(?:/[\\w.-]+)+", texto)
+    ruta_estilo_windows = re.search(r"[A-Za-z]:\\\\[\\w .-]+(?:\\\\[\\w .-]+)+", texto)
+    archivo_con_extension = re.search(r"\\b[\\w.-]+\\.(py|js|ts|tsx|json|md|yaml|yml|sql|sh|ps1)\\b", texto, re.IGNORECASE)
+    return bool(ruta_estilo_unix or ruta_estilo_windows or archivo_con_extension)
+
+
+def _es_error_api_esperado(exc: Exception) -> bool:
+    if isinstance(
+        exc,
+        (
+            anthropic.APIError,
+            anthropic.APIConnectionError,
+            anthropic.APITimeoutError,
+            anthropic.AuthenticationError,
+        ),
+    ):
+        return True
+    return isinstance(exc, TypeError) and "Could not resolve authentication method" in str(exc)
 
 def analizar_conversacion(texto_conversacion: str) -> dict:
     """
@@ -127,17 +148,10 @@ Devuelve SOLO el JSON, sin texto adicional."""
                 }
             ]
         )
-    except (
-        anthropic.APIError,
-        anthropic.APIConnectionError,
-        anthropic.APITimeoutError,
-        anthropic.AuthenticationError,
-    ):
-        return _analisis_local_basico(texto_conversacion)
-    except TypeError as exc:
-        if "Could not resolve authentication method" not in str(exc):
-            raise
-        return _analisis_local_basico(texto_conversacion)
+    except Exception as exc:
+        if _es_error_api_esperado(exc):
+            return _analisis_local_basico(texto_conversacion)
+        raise
 
     # Extraer el texto de la respuesta
     texto_respuesta = ""
