@@ -17,6 +17,7 @@ from datetime import datetime
 
 # Cliente con la configuración de OpenRouter vía settings.json
 client = anthropic.Anthropic()
+MAX_TOKENS_TEXTO_CORTO = 12
 
 SYSTEM_PROMPT = """Eres el Agente Analizador del proyecto FREELANCE de FISCFED9.
 
@@ -64,12 +65,17 @@ Si no hay nada valioso, devuelve:
 def _analisis_local_basico(texto_conversacion: str) -> dict:
     """
     Fallback local cuando el modelo no está disponible.
+
+    Heurística:
+    - Si el texto es corto (<= MAX_TOKENS_TEXTO_CORTO) y no incluye señales
+      técnicas claras (bloques de código o rutas), se marca como no valioso.
+    - En otros casos se conserva el contenido para evitar perder contexto útil.
     """
     texto = texto_conversacion.strip()
     tokens = [t.strip(".,;:!?¡¿\"'()[]{}").lower() for t in texto.split()]
     tokens = [t for t in tokens if t]
 
-    if len(tokens) <= 12 and "```" not in texto and "/" not in texto and "\\" not in texto:
+    if len(tokens) <= MAX_TOKENS_TEXTO_CORTO and "```" not in texto and "/" not in texto and "\\" not in texto:
         return {
             "fecha": datetime.now().strftime("%Y-%m-%d"),
             "tiene_contenido_valioso": False,
@@ -117,7 +123,13 @@ Devuelve SOLO el JSON, sin texto adicional."""
                 }
             ]
         )
-    except Exception:
+    except (
+        anthropic.APIError,
+        anthropic.APIConnectionError,
+        anthropic.APITimeoutError,
+        anthropic.AuthenticationError,
+        TypeError,
+    ):
         return _analisis_local_basico(texto_conversacion)
 
     # Extraer el texto de la respuesta
