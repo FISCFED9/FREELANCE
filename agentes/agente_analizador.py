@@ -17,7 +17,7 @@ from datetime import datetime
 
 # Cliente con la configuración de OpenRouter vía settings.json
 client = anthropic.Anthropic()
-MAX_TOKENS_TEXTO_CORTO = 12
+MAX_PALABRAS_TEXTO_CORTO = 12
 
 SYSTEM_PROMPT = """Eres el Agente Analizador del proyecto FREELANCE de FISCFED9.
 
@@ -67,7 +67,7 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
     Fallback local cuando el modelo no está disponible.
 
     Heurística:
-    - Si el texto es corto (<= MAX_TOKENS_TEXTO_CORTO) y no incluye señales
+    - Si el texto es corto (<= MAX_PALABRAS_TEXTO_CORTO) y no incluye señales
       técnicas claras (bloques de código o rutas), se marca como no valioso.
     - En otros casos se conserva el contenido para evitar perder contexto útil.
     """
@@ -75,7 +75,7 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
     tokens = [t.strip(".,;:!?¡¿\"'()[]{}").lower() for t in texto.split()]
     tokens = [t for t in tokens if t]
 
-    if len(tokens) <= MAX_TOKENS_TEXTO_CORTO and "```" not in texto and "/" not in texto and "\\" not in texto:
+    if len(tokens) <= MAX_PALABRAS_TEXTO_CORTO and not _contiene_senales_tecnicas(texto):
         return {
             "fecha": datetime.now().strftime("%Y-%m-%d"),
             "tiene_contenido_valioso": False,
@@ -91,6 +91,10 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
         "codigo_extraido": [],
         "palabras_clave": []
     }
+
+
+def _contiene_senales_tecnicas(texto: str) -> bool:
+    return "```" in texto or "/" in texto or "\\" in texto
 
 def analizar_conversacion(texto_conversacion: str) -> dict:
     """
@@ -128,8 +132,11 @@ Devuelve SOLO el JSON, sin texto adicional."""
         anthropic.APIConnectionError,
         anthropic.APITimeoutError,
         anthropic.AuthenticationError,
-        TypeError,
     ):
+        return _analisis_local_basico(texto_conversacion)
+    except TypeError as exc:
+        if "Could not resolve authentication method" not in str(exc):
+            raise
         return _analisis_local_basico(texto_conversacion)
 
     # Extraer el texto de la respuesta
