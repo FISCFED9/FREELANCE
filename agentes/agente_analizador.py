@@ -19,6 +19,7 @@ from datetime import datetime
 # Cliente con la configuración de OpenRouter vía settings.json
 client = anthropic.Anthropic()
 MAX_PALABRAS_TEXTO_CORTO = 12
+AUTH_ERROR_FRAGMENT = "Could not resolve authentication method"
 
 SYSTEM_PROMPT = """Eres el Agente Analizador del proyecto FREELANCE de FISCFED9.
 
@@ -71,6 +72,8 @@ def _analisis_local_basico(texto_conversacion: str) -> dict:
     - Si el texto es corto (<= MAX_PALABRAS_TEXTO_CORTO) y no incluye señales
       técnicas claras (bloques de código o rutas), se marca como no valioso.
     - En otros casos se conserva el contenido para evitar perder contexto útil.
+    - El conteo de palabras es intencionalmente simple (split + strip), suficiente
+      para filtrar saludos y mensajes cortos sin costo adicional.
     """
     texto = texto_conversacion.strip()
     tokens = [t.strip(".,;:!?¡¿\"'()[]{}").lower() for t in texto.split()]
@@ -98,9 +101,9 @@ def _contiene_senales_tecnicas(texto: str) -> bool:
     if "```" in texto:
         return True
 
-    ruta_estilo_unix = re.search(r"(?:^|\\s)(?:\\.?\\.?/)?[\\w.-]+(?:/[\\w.-]+)+", texto)
-    ruta_estilo_windows = re.search(r"[A-Za-z]:\\\\[\\w .-]+(?:\\\\[\\w .-]+)+", texto)
-    archivo_con_extension = re.search(r"\\b[\\w.-]+\\.(py|js|ts|tsx|json|md|yaml|yml|sql|sh|ps1)\\b", texto, re.IGNORECASE)
+    ruta_estilo_unix = re.search(r"(?:^|\s)(?:\.?\.?/)?[\w.-]+(?:/[\w.-]+)+", texto)
+    ruta_estilo_windows = re.search(r"[A-Za-z]:\\[\w .-]+(?:\\[\w .-]+)+", texto)
+    archivo_con_extension = re.search(r"\b[\w.-]+\.(py|js|ts|tsx|json|md|yaml|yml|sql|sh|ps1)\b", texto, re.IGNORECASE)
     return bool(ruta_estilo_unix or ruta_estilo_windows or archivo_con_extension)
 
 
@@ -115,7 +118,8 @@ def _es_error_api_esperado(exc: Exception) -> bool:
         ),
     ):
         return True
-    return isinstance(exc, TypeError) and "Could not resolve authentication method" in str(exc)
+    # El SDK puede lanzar TypeError por autenticación no configurada.
+    return isinstance(exc, TypeError) and AUTH_ERROR_FRAGMENT in str(exc)
 
 def analizar_conversacion(texto_conversacion: str) -> dict:
     """
